@@ -7,8 +7,8 @@ import tifffile
 from torch.utils.data import  DataLoader
 from lgbt import lgbt
 
-from dataset import TiffVolumeDataset, TestDataset
-from model import Simple3DCNN
+from dataset import  TestDataset
+from model import Enhanced3DCNN
 
 # ========================================
 # Global variables
@@ -18,8 +18,8 @@ tiff_path = r".\forams-classification-2025\volumes\volumes\unlabelled"
 
 if __name__ == "__main__":
 
-	model = Simple3DCNN(num_classes=14)
-	model.load_state_dict(torch.load("best0.pth"))
+	model = Enhanced3DCNN(num_classes=14)
+	model.load_state_dict(torch.load("weights/best103.pth"))
 	model.to(device=device)
 
 	dataset = TestDataset(tiff_path)
@@ -38,7 +38,7 @@ if __name__ == "__main__":
 				results.append((file_idx.item(), class_idx))
 
 	results.sort(key=lambda x: x[0])
-    
+	
 	with open("output.csv", "w") as output_file:
 		output_file.write("id,label\n")
 		for file_idx, class_idx in results:
