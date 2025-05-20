@@ -43,7 +43,7 @@ class TiffVolumeDataset(Dataset):
 		volume = load_tiff_stack_to_3d_array(volume_path)
 
 		volume = (volume - volume.min()) / (volume.max() - volume.min())
-		volume = torch.from_numpy(volume)
+		volume = torch.from_numpy(volume).unsqueeze(dim=0)
 		label = torch.tensor(label).long()
 		scale_factor = torch.tensor(scale_factor).float()
 

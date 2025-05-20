@@ -37,6 +37,7 @@ if __name__ == "__main__":
 		for volume, label, scale_factor in lgbt(train_dataloader, desc=f"epoch {epoch}", mode="mex"):
 			volume = volume.to(device)
 			label = label.to(device)
+			scale_factor = scale_factor.to(device)
 			
 			optimizer.zero_grad()
 			output = model(volume, scale_factor)
