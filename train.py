@@ -74,10 +74,7 @@ if __name__ == "__main__":
 		if patience == 10:
 			print("No changes, swap dataset")
 			dataset.clear()
-			dataset = TrainWithValidDataset(tiff_paths=tiff_path, labels=labels, k=0.1)
-			dataloader = DataLoader(dataset=dataset, batch_size=1, shuffle=True)
-			patience = 0
-
+			break
 
 	model.eval()
 	torch.save(model.state_dict(), "weights/last.pth")

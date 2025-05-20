@@ -33,9 +33,8 @@ if __name__ == "__main__":
 			output = model(volume)
 			prob = torch.softmax(output.squeeze(), dim=0)
 			idx = torch.argmax(prob).item()
-			if prob[idx] > 0.9:
-				class_idx = idx
-				results.append((file_idx.item(), class_idx))
+			results.append((file_idx.item(), idx))
+
 
 	results.sort(key=lambda x: x[0])
 	
