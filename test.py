@@ -6,13 +6,14 @@ import torch.nn as nn
 import numpy as np
 from lgbt import lgbt
 
-from dataset import load_tiff_stack_to_3d_array
+from dataset import TiffVolumeDataset, load_tiff_stack_to_3d_array
 from model import Simple3DCNN
+
 
 # ========================================
 # Global variables
 # ========================================
-tiff_path = r".\forams-classification-2025\volumes\volumes\unlabelled"
+tiff_path = r".\forams-classification-2025\volumes\volumes\labelled"
 model = None
 device = None
 
@@ -21,34 +22,35 @@ def init_model():
 	global device
 	device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 	model = Simple3DCNN(num_classes=14)
-	model.load_state_dict(torch.load("best2.pth"))	
+	model.load_state_dict(torch.load("weights/best8.pth"))	
 	model.to(device=device)
 	model.eval()
 
-def single_task(path):
-	global model
-	global device
-	volume = load_tiff_stack_to_3d_array(path)
-	volume = (volume - volume.min()) / (volume.max() - volume.min())
-	volume = torch.from_numpy(volume).unsqueeze(dim=0).to(device=device)
+def single_task(elem):
+	global model, device
+
+	volume, file_idx, scale = elem
+	volume = volume.unsqueeze(dim=0).to(device=device)
+	scale = scale.unsqueeze(dim=0).to(device=device)
 
 	with torch.no_grad():
-		output = model(volume)
+		output = model(volume, scale)
 
-	file_idx = int(path.split("\\")[-1].split("_")[2])
 	class_idx = torch.argmax(output.squeeze()).item()
-	return (file_idx, class_idx)
+	return (file_idx.item(), class_idx)
 
 
 if __name__ == "__main__":
 	all_files = []
+
+	dataset = TiffVolumeDataset(tiff_path)
 	names = os.listdir(tiff_path)
 	for name in names:
 		path_to_file = os.path.join(tiff_path, name)
 		all_files.append(path_to_file)
 
-	with multiprocessing.Pool(processes=2, initializer=init_model) as pool:
-		results = list(lgbt(pool.imap(single_task, all_files), mode="nor", desc="Files", total=len(all_files)))
+	with multiprocessing.Pool(processes=1, initializer=init_model) as pool:
+		results = list(lgbt(pool.imap(single_task, dataset), mode="nor", desc="Files", total=len(all_files)))
 
 	results.sort(key=lambda x: x[0])
     

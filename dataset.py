@@ -17,22 +17,30 @@ def load_tiff_stack_to_3d_array(tiff_path):
 # Create a PyTorch Dataset for batches
 # ==============================================
 class TiffVolumeDataset(Dataset):
-	def __init__(self, tiff_paths, labels):
+	def __init__(self, tiff_paths, labels=None):
 		self.tiff_paths = tiff_paths
 		files_list = os.listdir(tiff_paths)
 		self.samples = []
 
-		with open(labels, "r") as f:
-			self.labels = f.readlines()
+		if labels is None:
+			for file_name in files_list:	
+				path_to_tiff = os.path.join(self.tiff_paths, file_name)
+				file_name_splits = file_name.replace(".tif","").split("_")
+				file_idx = int(file_name_splits[2])
+				scale = float(f"{file_name_splits[-2]}.{file_name_splits[-1]}")
+				self.samples.append( (path_to_tiff, file_idx, scale) )
+		else:
+			with open(labels, "r") as f:
+				self.labels = f.readlines()
 		
-		self.labels = self.labels[1::]
+			self.labels = self.labels[1::]
+			for file_name, line in zip(files_list, self.labels):	
+				path_to_tiff = os.path.join(self.tiff_paths, file_name)
+				label = int(line.split(",")[1])
+				file_name_splits = file_name.replace(".tif","").split("_")
+				scale_factor =  float(f"{file_name_splits[-2]}.{file_name_splits[-1]}")
+				self.samples.append( (path_to_tiff, label, scale_factor) )
 
-		for file_name, line in zip(files_list, self.labels):	
-			path_to_tiff = os.path.join(self.tiff_paths, file_name)
-			label = int(line.split(",")[1])
-			file_name_splits = file_name.replace(".tif","").split("_")
-			scale_factor =  float(f"{file_name_splits[-2]}.{file_name_splits[-1]}")
-			self.samples.append( (path_to_tiff, label, scale_factor) )
 
 	def __len__(self):
 		return len(self.samples)

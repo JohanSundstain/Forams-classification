@@ -50,8 +50,8 @@ if __name__ == "__main__":
 		if running_loss < best_loss:
 			best_loss = running_loss
 			model.eval()
-			torch.save(model.state_dict(), f"best{int(running_loss*100)}.pth")
+			torch.save(model.state_dict(), f"weights/best{int(running_loss*100)}.pth")
 
 
 	model.eval()
-	torch.save(model.state_dict(), "last.pth")
+	torch.save(model.state_dict(), "weights/last.pth")
