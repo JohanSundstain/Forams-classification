@@ -30,21 +30,24 @@ class TiffVolumeDataset(Dataset):
 		for file_name, line in zip(files_list, self.labels):	
 			path_to_tiff = os.path.join(self.tiff_paths, file_name)
 			label = int(line.split(",")[1])
-			self.samples.append( (path_to_tiff, label) )
+			file_name_splits = file_name.replace(".tif","").split("_")
+			scale_factor =  float(f"{file_name_splits[-2]}.{file_name_splits[-1]}")
+			self.samples.append( (path_to_tiff, label, scale_factor) )
 
 	def __len__(self):
 		return len(self.samples)
 
 	def __getitem__(self, idx):
-		volume_path, label = self.samples[idx]
+		volume_path, label, scale_factor = self.samples[idx]
 
 		volume = load_tiff_stack_to_3d_array(volume_path)
 
 		volume = (volume - volume.min()) / (volume.max() - volume.min())
 		volume = torch.from_numpy(volume)
 		label = torch.tensor(label).long()
+		scale_factor = torch.tensor(scale_factor).float()
 
-		return volume, label
+		return volume, label, scale_factor
 
 class TestDataset(Dataset):
 	def __init__(self, tiff_paths):

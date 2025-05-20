@@ -34,12 +34,12 @@ if __name__ == "__main__":
 	for epoch in range(epochs):
 		model.train()
 		running_loss = 0.0
-		for volume, label in lgbt(train_dataloader, desc=f"epoch {epoch}", mode="mex"):
+		for volume, label, scale_factor in lgbt(train_dataloader, desc=f"epoch {epoch}", mode="mex"):
 			volume = volume.to(device)
 			label = label.to(device)
 			
 			optimizer.zero_grad()
-			output = model(volume)
+			output = model(volume, scale_factor)
 			loss = loss_func(output, label)
 			loss.backward()
 			optimizer.step()
