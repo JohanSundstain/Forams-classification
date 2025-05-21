@@ -8,7 +8,7 @@ from torch.utils.data import  DataLoader
 from lgbt import lgbt
 
 from dataset import  TestDataset
-from model import Enhanced3DCNN
+from model import Enhanced3DCNN, Enhanced3DCNN_new
 
 # ========================================
 # Global variables
@@ -19,7 +19,7 @@ tiff_path = r".\forams-classification-2025\volumes\volumes\unlabelled"
 if __name__ == "__main__":
 
 	model = Enhanced3DCNN(num_classes=14)
-	model.load_state_dict(torch.load("weights/best103.pth"))
+	model.load_state_dict(torch.load("weights/best103_.pth"))
 	model.to(device=device)
 
 	dataset = TestDataset(tiff_path)
@@ -28,17 +28,17 @@ if __name__ == "__main__":
 
 	model.eval()
 	with torch.no_grad():
-		for volume, file_idx in lgbt(train_dataloader, mode='esp', hero='teddy', desc="Test"):
+		for volume, file_idx, _ in lgbt(train_dataloader, mode='esp', hero='teddy', desc="Test"):
 			volume = volume.to(device=device)
 			output = model(volume)
 			prob = torch.softmax(output.squeeze(), dim=0)
 			idx = torch.argmax(prob).item()
-			results.append((file_idx.item(), idx))
+			results.append((file_idx.item(), idx, prob[idx]))
 
 
 	results.sort(key=lambda x: x[0])
 	
-	with open("output.csv", "w") as output_file:
+	with open(f"output{type(model).__name__}.csv", "w") as output_file:
 		output_file.write("id,label\n")
-		for file_idx, class_idx in results:
-			output_file.write(f'{file_idx},{class_idx}\n')
+		for file_idx, class_idx, conf in results:
+			output_file.write(f'{file_idx},{class_idx},{conf}\n')

@@ -146,4 +146,4 @@ class TestDataset(Dataset):
 
 		file_idx = torch.tensor(file_idx).long()
 
-		return volume, file_idx
+		return volume, file_idx, volume_path

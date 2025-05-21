@@ -56,7 +56,7 @@ if __name__ == "__main__":
 		results = list(lgbt(pool.imap(single_task, dataset), mode="nor", desc="Files", total=len(all_files)))
 
 	results.sort(key=lambda x: x[0])
-    
+	
 	with open("output.csv", "w") as output_file:
 		output_file.write("id,label\n")
 		for file_idx, class_idx in results:
