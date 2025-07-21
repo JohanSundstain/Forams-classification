@@ -40,6 +40,7 @@ class KFoldValidDataset(Dataset):
 		random.shuffle(KFoldValidDataset.samples)
 		self._num_val_samples = len(KFoldValidDataset.samples) // self._k
 		self.next_fold()
+
 		
 	def train(self):
 		self._train = True
