@@ -1,5 +1,6 @@
 __pycache__
-forams-classification-2025
+dataset
+.vscode
 forams-classification-2025.zip
 best0.pth
 output.csv

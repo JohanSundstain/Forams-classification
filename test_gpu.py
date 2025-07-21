@@ -41,4 +41,4 @@ if __name__ == "__main__":
 	with open(f"output{type(model).__name__}.csv", "w") as output_file:
 		output_file.write("id,label\n")
 		for file_idx, class_idx, conf in results:
-			output_file.write(f'{file_idx},{class_idx},{conf}\n')
+			output_file.write(f'{file_idx},{class_idx}\n')

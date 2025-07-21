@@ -19,103 +19,50 @@ def preprocess_tiff(volume):
 	
 	return volume
 
-class TrainDataset(Dataset):
-	def __init__(self, tiff_paths, labels=None):
-		self.files_list = os.listdir(tiff_paths)
-		self.samples = []
-
-		with open(labels, "r") as f:
-			self.labels = f.readlines()
-		
-		self.labels = self.labels[1::]
-		for file_name, line in zip(self.files_list, self.labels):	
-			path_to_tiff = os.path.join(self.tiff_paths, file_name)
-			label = int(line.split(",")[1])
-			self.samples.append( (path_to_tiff, label) )
-
-	def __len__(self):
-		return len(self.samples)
-
-	def __getitem__(self, idx):
-		volume_path, label = self.samples[idx]
-
-		volume = load_tiff_stack_to_3d_array(volume_path)
-		volume = preprocess_tiff(volume=volume)
-
-		label = torch.tensor(label).long()
-
-		return volume, label
-	
-class TrainWithValidDataset(Dataset):
+class KFoldValidDataset(Dataset):
 	valid_samples = []
 	train_samples = []
 	samples = []
-	def __init__(self, tiff_paths, labels, k=0.1):
-		self.files_list = os.listdir(tiff_paths)
-		self.k = k
-		self.labels = {}
+	def __init__(self, tiff_paths, labels, k=3):
+		self._current_fold = -1
+		self._k = k
+		self._train = True
 
-		valid_files, train_files = self._separate()
-	
+		files_list = os.listdir(tiff_paths)
 		with open(labels, "r") as f:
 			raws = f.readlines()
-
-		raws = raws[1::]		
-		for raw in raws:
-			# labelled_xxxxx, y -> [labelled_xxxxx, y]
-			separated = raw.split(",")
-			# labelled_xxxxx -> [labelled, xxxxx] -> int(xxxxx); 
-			# y -> int y
-			file_idx, class_idx = int(separated[0].split("_")[1]), int(separated[1])
-			self.labels[file_idx] = class_idx
-
-
-		for file_name in valid_files:	
-			path_to_tiff = os.path.join(tiff_paths, file_name)
-
-			# get file index
-			# file_name = labelled_foram_xxxxx_sc_y_yyy.tif -> [labelled, foram, xxxxx, sc, y, yyy.tif] -> int(xxxxx)
-			file_idx = int(file_name.split("_")[2])
-			
-			TrainWithValidDataset.valid_samples.append( (path_to_tiff, self.labels[file_idx]) )
+		raws = raws[1::]	
+		for raw, file_name in zip(raws, files_list):
+			class_idx = int(raw.split(",")[1])
+			file_path = os.path.join(tiff_paths, file_name)
+			KFoldValidDataset.samples.append( (class_idx, file_path) )
 		
-		for file_name in train_files:	
-			path_to_tiff = os.path.join(tiff_paths, file_name)
-
-			# get file index
-			# file_name = labelled_foram_xxxxx_sc_y_yyy.tif -> [labelled, foram, xxxxx, sc, y, yyy.tif] -> int(xxxxx)
-			file_idx = int(file_name.split("_")[2])
-			
-			TrainWithValidDataset.train_samples.append( (path_to_tiff, self.labels[file_idx]) ) 
-			
-		TrainWithValidDataset.train()
+		random.shuffle(KFoldValidDataset.samples)
+		self._num_val_samples = len(KFoldValidDataset.samples) // self._k
+		self.next_fold()
 		
-	@staticmethod	
-	def train():
-		TrainWithValidDataset.samples = TrainWithValidDataset.train_samples
+	def train(self):
+		self._train = True
 	
-	@staticmethod
-	def valid():
-		TrainWithValidDataset.samples = TrainWithValidDataset.valid_samples
+	def valid(self):
+		self._train = False
 
-	@staticmethod
 	def clear():
-		TrainWithValidDataset.samples.clear()
-		TrainWithValidDataset.train_samples.clear()
-		TrainWithValidDataset.valid_samples.clear()
+		KFoldValidDataset.train_samples.clear()
+		KFoldValidDataset.valid_samples.clear()
+
+	def next_fold(self):
+		self._current_fold += 1
+
+		KFoldValidDataset.valid_samples = KFoldValidDataset.samples[self._current_fold * self._num_val_samples : (self._current_fold + 1) * self._num_val_samples]
+		KFoldValidDataset.train_samples = KFoldValidDataset.samples[:self._current_fold * self._num_val_samples] + KFoldValidDataset.samples[(self._current_fold + 1) * self._num_val_samples:] 
+		
 	
-
-	def _separate(self):
-		n = int(len(self.files_list) * self.k)
-		shuffled = self.files_list.copy()
-		random.shuffle(shuffled)
-		return shuffled[:n], shuffled[n:] 
-
 	def __len__(self):
-		return len(TrainWithValidDataset.samples)
+		return len(KFoldValidDataset.train_samples if self._train else KFoldValidDataset.valid_samples)
 
 	def __getitem__(self, idx):
-		volume_path, label  = TrainWithValidDataset.samples[idx]
+		label, volume_path = KFoldValidDataset.train_samples[idx] if self._train else  KFoldValidDataset.valid_samples[idx]
 
 		volume = load_tiff_stack_to_3d_array(volume_path)
 		volume = preprocess_tiff(volume=volume)
@@ -123,27 +70,3 @@ class TrainWithValidDataset(Dataset):
 
 		return volume, label 
 	
-
-class TestDataset(Dataset):
-	def __init__(self, tiff_paths):
-		self.tiff_paths = tiff_paths
-		files_list = os.listdir(tiff_paths)
-		self.samples = []
-
-		for file_name in files_list:	
-			path_to_tiff = os.path.join(self.tiff_paths, file_name)
-			file_idx = int(file_name.split("_")[1])
-			self.samples.append( (path_to_tiff, file_idx) )
-
-	def __len__(self):
-		return len(self.samples)
-
-	def __getitem__(self, idx):
-		volume_path, file_idx  = self.samples[idx]
-
-		volume = load_tiff_stack_to_3d_array(volume_path)
-		volume = preprocess_tiff(volume=volume)
-
-		file_idx = torch.tensor(file_idx).long()
-
-		return volume, file_idx, volume_path
